@@ -1,0 +1,68 @@
+# Autenticação e obtenção do Token
+@tenant_name=TENANT_NAME
+@tenant_id=TENANT_ID
+@consumer_application_id=ID_APPREGISTRATION
+@consumer_secret=SECRET
+
+###
+
+# @name autenticar
+POST https://login.microsoftonline.com/{{tenant_id}}/oauth2/v2.0/token
+Content-Type: application/x-www-form-urlencoded
+
+client_id={{consumer_application_id}}
+&client_secret={{consumer_secret}}
+&grant_type=client_credentials
+&scope=https://graph.microsoft.com/.default
+
+###
+
+@token={{autenticar.response.body.access_token}}
+
+###
+
+# @name applications
+GET https://graph.microsoft.com/v1.0/applications/
+Authorization: Bearer {{token}}
+
+###
+
+# @name auditLogs
+GET https://graph.microsoft.com/v1.0/auditLogs/directoryAudits?$filter=loggedByService eq 'B2C'
+Authorization: Bearer {{token}}
+
+###
+
+@userObjectId=USER_ID
+
+###
+
+# @name getUser
+GET https://graph.microsoft.com/v1.0/users/{{userObjectId}}
+Authorization: Bearer {{token}}
+Content-Type: application/x-www-form-urlencoded
+
+###
+
+# @name listMFAMethods
+GET https://graph.microsoft.com/v1.0/users/{{userObjectId}}/authentication/softwareOathMethods
+Authorization: Bearer {{token}}
+Content-Type: application/x-www-form-urlencoded
+
+###
+
+# @name resetMFA
+# Documentação: https://learn.microsoft.com/en-us/azure/active-directory-b2c/microsoft-graph-operations#software-oath-token-authentication-method
+
+@idSoftwareOathMethod = {{listMFAMethods.response.body.$.value[0].id}}
+
+DELETE https://graph.microsoft.com/v1.0/users/{{userObjectId}}/authentication/softwareOathMethods/{{idSoftwareOathMethod}}
+Authorization: Bearer {{token}}
+Content-Type: application/x-www-form-urlencoded
+
+###
+
+# @name listMetodosAutenticacao
+GET https://graph.microsoft.com/v1.0/users/{{userObjectId}}/authentication/methods
+Authorization: Bearer {{token}}
+Content-Type: application/x-www-form-urlencoded
